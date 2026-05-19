@@ -1,35 +1,7 @@
 import { writable } from "svelte/store";
-
-export let config = writable({
-    width: 400,
-    height: 400,
-    fill: '#888888',
-    layers: [
-        // {
-        //     type: 'txt',
-        //     data: "lorem",
-        //     x: 200,
-        //     y: 200,
-        //     c: 'red',
-        //     s: 50,
-        //     o: "cm"
-        // },
-        // {
-        //     type: 'txt',
-        //     data: "gfgf",
-        //     x: 100,
-        //     y: 100,
-        //     c: 'blue',
-        //     s: 48,
-        //     o: "cm"
-        // },
-    ],
+import type { LayerImg, LayerShp, LayerTxt } from "./types";
+export let config = writable<{ width:number, height:number, fill:string,
+    layers:(LayerImg|LayerShp|LayerTxt)[], fmt?:"webp"|"gif", frames?:number, fps?:number }>({
+    width: 400, height: 400, fill: '#888888', fmt: 'webp', frames: 0, fps: 10, layers: [],
 })
-
-export let current = writable(null)
-
-
-export let images = writable({})
-
-
-export let panelOpen = writable(false)
+export let current = writable<null|number>(null)
