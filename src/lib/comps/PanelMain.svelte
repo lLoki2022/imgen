@@ -1,5 +1,6 @@
 <script>
     import { flip } from 'svelte/animate';
+    import { loadGifAware } from '$lib/clientGif';
     import { fade } from 'svelte/transition';
     import PanelLayerBtn from './PanelLayerBtn.svelte';
     import { config, current } from '$lib/store.js';
@@ -34,20 +35,9 @@
             });
         },
         async img() {
-            await addLayer({
-                type: 'img',
-                data: {
-                    $name: 'https://placehold.co/100',
-                    $elem: await loadImage('https://placehold.co/100')
-                },
-                x: 50,
-                y: 50,
-                w: 100,
-                h: 100,
-                r: 0,
-                rd: 0,
-                o: 'cm'
-            });
+            const url = 'https://placehold.co/100';
+            const data = await loadGifAware(url);
+            await addLayer({ type:'img', data, x:50, y:50, w:100, h:100, r:0, rd:0, o:'cm' });
         },
         async shp() {
             await addLayer({
@@ -89,6 +79,27 @@
     <div flex="20 ai-c" class="mt-10"></div>
 </div>
 
+<hr />
+<div>
+    <span>Format</span>
+    <div flex="15 ai-c" class="mt-15">
+        <label flex="8 ai-c" class="cursor-pointer">
+            <input type="radio" bind:group={$config.fmt} value="webp" data-testid="fmt-webp" />
+            <span>WebP (static)</span>
+        </label>
+        <label flex="8 ai-c" class="cursor-pointer">
+            <input type="radio" bind:group={$config.fmt} value="gif" data-testid="fmt-gif" />
+            <span>GIF (animated)</span>
+        </label>
+    </div>
+    {#if $config.fmt === 'gif'}
+        <div flex="20 ai-c" class="mt-15">
+            <Input label="frames" bind:value={$config.frames} min={0} max={120} />
+            <Input label="fps" bind:value={$config.fps} min={1} max={50} />
+        </div>
+        <p class="mt-10 c-#888 text-12">frames=0 → use the GIF's own length. Set fps to override speed.</p>
+    {/if}
+</div>
 <hr />
 
 <div>
