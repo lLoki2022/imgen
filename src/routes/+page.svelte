@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Canvas, Ctx } from '$lib/types';
-
+    import { loadGifAware } from '$lib/clientGif';
     import { generateImage } from '$lib/generate';
     import { browser, dev } from '$app/environment';
     import { config, current } from '$lib/store';
@@ -23,13 +23,30 @@
     let canvas: Canvas | undefined | null;
 
     let linkData: string = '';
+    let animFrame = 0;
+    let animTimer: any = null;
+    function stopAnim() { if (animTimer) { clearTimeout(animTimer); animTimer = null; } }
+    function maybeStartAnim() {
+        stopAnim();
+        const gifLayer = ($config.layers as any[]).find(l => l?.data?.$frames && l.data.$frames.length > 1);
+        if (!gifLayer) return;
+        const tick = () => {
+            animFrame = (animFrame + 1) >>> 0;
+            render($config);
+            const frames = gifLayer.data.$frames;
+            const f = frames[animFrame % frames.length];
+            const delayMs = Math.max(20, (f?.delay || 10) * 10);
+            animTimer = setTimeout(tick, delayMs);
+        };
+        animTimer = setTimeout(tick, 80);
+    }
 
     function encode(str: string) {
         return str.replace(/&/g, '%26').replace(/\?/g, '%3F');
     }
 
     function createLinkData(c: any) {
-        return `s=${c.width}x${c.height}&fill=${hex0x(c.fill)}&l=${c.layers
+        return `s=${c.width}x${c.height}&fill=${hex0x(c.fill)}${c.fmt === 'gif' ? `&fmt=gif${c.frames ? `&frames=${c.frames}` : ''}${c.fps ? `&fps=${c.fps}` : ''}` : ''}&l=${c.layers
             .map((e: any) => {
                 return (
                     e.type +
@@ -70,6 +87,7 @@
     $: if (canvas && browser) setLoadImage();
 
     $: if (canvas && browser) render($config);
+    $: if (browser && $config.layers) maybeStartAnim();
 
     let saved = true;
 
@@ -89,7 +107,7 @@
 
             ctx?.clearRect(0, 0, cfg.width, cfg.height);
 
-            await generateImage(ctx, cfg);
+            await generateImage(ctx, cfg, animFrame);
 
             linkData = '?' + createLinkData(cfg).replace(/\s/g, '%20');
 
@@ -151,7 +169,7 @@
 
     let showLink = false;
 
-    $: fullLink = `${$page.url.origin}/img${linkData}`;
+    $: fullLink = `${$page.url.origin}/img${$config.fmt === 'gif' ? '.gif' : ''}${linkData}`;
 
     function copyLink() {
         try {
@@ -170,6 +188,19 @@
             // @ts-ignore
             $config = local ? parseConfig(local) : $config;
         } catch (error) {}
+
+        (async () => {
+            const layers = $config.layers as any[];
+            for (let i = 0; i < layers.length; i++) {
+                const l = layers[i];
+                if (l.type === 'img' && typeof l.data === 'string') {
+                    const dec = decodeURIComponent(l.data);
+                    l.data = await loadGifAware(dec);
+                    $config = $config;
+                }
+            }
+            maybeStartAnim();
+        })();
 
         addEventListener('keydown', (ev) => {
             if (ev.ctrlKey && ev.key == 'c') {
