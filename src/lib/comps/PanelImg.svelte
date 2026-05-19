@@ -1,5 +1,6 @@
 <script>
     import { config, current } from '$lib/store.js';
+    import { loadGifAware } from '$lib/clientGif';
     import { onMount } from 'svelte';
     import Input from '$lib/ui/Input.svelte';
     import Move from '$lib/ui/Move.svelte';
@@ -16,11 +17,7 @@
 
     async function setImg() {
         const dec = decodeURIComponent(imgName);
-
-        $config.layers[$current].data = {
-            $name: dec,
-            $elem: await loadImage(dec)
-        };
+        $config.layers[$current].data = await loadGifAware(dec);
     }
 </script>
 
